@@ -198,91 +198,38 @@ public class InstallerService extends ForegroundService {
 				File archive = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/sl4a/seattle.zip");
 				archive.delete();
 		
-				//String user_hash = ReferralReceiver.retrieveReferralParams(s.getApplicationContext()).get("utm_content");
-				//if (user_hash == null)
-				//	user_hash = "flibble";
-				
 				String DownloadURLString = ReferralReceiver.retrieveReferralParams(s.getApplicationContext()).get("utm_source");
-				if (DownloadURLString == null)
+				
+				if (DownloadURLString == null) {
 					DownloadURLString = Common.DEFAULT_DOWNLOAD_URL;
+				}
 
 				try {
-					//URL url = new URL("https://seattlegeni.cs.washington.edu/geni/download/"+user_hash+"/seattle_win.zip");
 					URL url = new URL(DownloadURLString);
 					installerLogger.info(Common.LOG_INFO_DOWNLOADING_FROM + url.toString() );
 
-					URLConnection ucon;
+					HttpsURLConnection ucon;
 					InputStream is;
 
-					if (url.getProtocol().compareTo("https") == 0) {
-						// https host
-						//
-						// REQUIRES REVIEW -- POSSIBLE SECURITY FLAW
-						//
-						// a host is trusted only if it is on the whitelist. the certificates and co. are not checked.
-						//
-						HostnameVerifier oldHV = HttpsURLConnection.getDefaultHostnameVerifier();
-						HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() { 
-									public boolean verify(String hostname, SSLSession session) { 
-								installerLogger.info(hostname);
-								for (String trustedHostname : Common.TRUSTED_DOWNLOAD_HOSTNAMES_WHITELIST) {
-									if (trustedHostname.compareTo(hostname) == 0) {
-										// Host on whitelist --> trust
-										installerLogger.info(Common.LOG_INFO_UNTRUSTED_HOST_CHECK_WHITELIST_OK );
-										return true;
-									}
-								};
-								return false;
-	            				}});
-						SSLContext sslContext = SSLContext.getInstance("TLS");
-						sslContext.init(null, new X509TrustManager[] {
-							new X509TrustManager(){ 
-								public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException, IllegalArgumentException {} 
-								public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException, IllegalArgumentException {} 
-								public X509Certificate[] getAcceptedIssuers() { 
-									return new X509Certificate[0];
-								}
-							}
-						}, new SecureRandom());
-						SSLSocketFactory oldSSF = HttpsURLConnection.getDefaultSSLSocketFactory();
-						HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-						ucon = url.openConnection();
-						is = ucon.getInputStream();
-						HttpsURLConnection.setDefaultHostnameVerifier(oldHV);
-						HttpsURLConnection.setDefaultSSLSocketFactory(oldSSF);
-					} else {
-						// non-https host
-						// the host is trusted in case its hostname is on the whitelist
-						boolean trusted = false;
-						for (String trustedHostname : Common.TRUSTED_DOWNLOAD_HOSTNAMES_WHITELIST) {
-							if (trustedHostname.compareTo(url.getHost()) == 0) {
-								// Host on whitelist --> trust
-								trusted = true;
-							}
-						};
-						if (!trusted) {
-							// hostname not on whitelist, abort installation
-							installerLogger.severe(Common.LOG_EXCEPTION_UNTRUSTED_HOST);
-							throw new Exception("Untrusted host.");
-						}
-						installerLogger.info(Common.LOG_INFO_UNTRUSTED_HOST_CHECK_WHITELIST_OK);
-						ucon = url.openConnection();
-						is = ucon.getInputStream();
-					}
-					//InputStream is = ucon.getInputStream();
+					ucon = (HttpsURLConnection)url.openConnection();
+					is = ucon.getInputStream();				
+
 					BufferedInputStream bis = new BufferedInputStream(is);
 					FileOutputStream fos = new FileOutputStream(archive);
 					int len = 0;
 					byte[] buffer = new byte[4096];
 					installerLogger.info(Common.LOG_INFO_DOWNLOAD_STARTED);
+					
 					while ((len = bis.read(buffer)) != -1) {
 						fos.write(buffer,0,len);
 					}
+					
 					installerLogger.info(Common.LOG_INFO_DOWNLOAD_FINISHED);
 					bis.close();
 					fos.close();
+					
 				} catch (SSLException e) {
-					installerLogger.log(Level.SEVERE, Common.LOG_EXCEPTION_UNTRUSTED_HOST, e);
+					installerLogger.log(Level.SEVERE, Common.LOG_EXCEPTION_SSL_EXCEPTION, e);
 					instance = null;
 					ScriptActivity.handler.sendEmptyMessage(ScriptActivity.INSTALL_FAILED);
 					// Stop service
