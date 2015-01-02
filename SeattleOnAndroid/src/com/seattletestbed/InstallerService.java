@@ -52,21 +52,12 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
-import java.security.SecureRandom;
-import javax.net.ssl.SSLSession;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.SSLException;
 /**
  * 
@@ -140,8 +131,10 @@ public class InstallerService extends ForegroundService {
 			// Iterate through the file line by line, remembering the previous line
 			BufferedReader r = new BufferedReader(new FileReader(f));
 			String line, prevLine = null;
-			while((line = r.readLine())!=null)
+			while((line = r.readLine())!=null) {
 				prevLine = line;
+			}
+			r.close();
 			return (prevLine != null && prevLine.contains("seattle completed installation"));
 		} catch (Exception e) {
 			// Log exception

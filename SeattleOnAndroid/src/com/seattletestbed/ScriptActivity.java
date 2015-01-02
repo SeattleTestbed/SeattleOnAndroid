@@ -224,6 +224,7 @@ public class ScriptActivity extends Activity {
 				while((line=r.readLine())!=null){
 					twCont.append(line+"\n");
 				}
+				r.close();
 			} catch (Exception e) {
 				// Log exception
 				Log.e(Common.LOG_TAG, Common.LOG_EXCEPTION_READING_LOG_FILE, e);
